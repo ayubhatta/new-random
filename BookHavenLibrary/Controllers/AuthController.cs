@@ -134,6 +134,14 @@ namespace BookHavenLibrary.Controllers
         }
 
 
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return Ok("Logged out successfully");
+        }
+
+
         [HttpGet("all")]
         public async Task<IActionResult> GetAllUsers()
         {
