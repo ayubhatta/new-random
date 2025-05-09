@@ -78,9 +78,23 @@ namespace BookHavenLibrary.Controllers
 
             _context.Orders.Add(order);
 
+            // Update inventory stock
+            var inventoryItems = await _context.Inventory
+                .Where(i => bookIds.Contains(i.BookId))
+                .ToListAsync();
+
+            foreach (var ci in cartItems)
+            {
+                var inventory = inventoryItems.FirstOrDefault(i => i.BookId == ci.BookId);
+                if (inventory != null)
+                {
+                    inventory.QuantityInStock -= ci.Quantity;
+                    if (inventory.QuantityInStock < 0) inventory.QuantityInStock = 0; // Optional safeguard
+                }
+            }
+
             // Clear the cart after placing the order
             _context.CartItems.RemoveRange(cartItems);
-            _context.ShoppingCarts.Remove(cart); // Optional: if cart is to be deleted
             await _context.SaveChangesAsync();
 
             // Broadcast order
@@ -259,12 +273,12 @@ namespace BookHavenLibrary.Controllers
             if (itemCount >= 5)
                 discount += 0.05m;
 
+            if (itemCount >= 10)
+                discount += 0.10m;
+
             var successfulOrders = await _context.Orders
                 .Where(o => o.UserId == userId && o.Status == "completed")
                 .CountAsync();
-
-            if (successfulOrders >= 10)
-                discount += 0.10m;
 
             return total * discount;
         }
@@ -439,6 +453,15 @@ namespace BookHavenLibrary.Controllers
 
             order.Status = "completed";
             order.UpdatedAt = DateTime.UtcNow;
+
+            var cart = await _context.ShoppingCarts
+                .FirstOrDefaultAsync(c => c.UserId == order.UserId && !c.IsPaymentDone);
+
+            if (cart != null)
+            {
+                cart.IsPaymentDone = true;
+                cart.UpdatedAt = DateTime.UtcNow;
+            }
 
             await _context.SaveChangesAsync();
 

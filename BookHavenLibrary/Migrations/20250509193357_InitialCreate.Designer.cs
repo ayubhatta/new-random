@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BookHavenLibrary.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250509041029_AddIfAnyV3")]
-    partial class AddIfAnyV3
+    [Migration("20250509193357_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -141,6 +141,8 @@ namespace BookHavenLibrary.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("BookId", "CategoryId");
+
+                    b.HasIndex("CategoryId");
 
                     b.ToTable("BookCategories");
                 });
@@ -672,6 +674,25 @@ namespace BookHavenLibrary.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BookHavenLibrary.Models.BookCategory", b =>
+                {
+                    b.HasOne("BookHavenLibrary.Models.Book", "Book")
+                        .WithMany("BookCategories")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BookHavenLibrary.Models.Category", "Category")
+                        .WithMany("BookCategories")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("BookHavenLibrary.Models.CartItem", b =>
                 {
                     b.HasOne("BookHavenLibrary.Models.ShoppingCart", null)
@@ -781,8 +802,15 @@ namespace BookHavenLibrary.Migrations
 
             modelBuilder.Entity("BookHavenLibrary.Models.Book", b =>
                 {
+                    b.Navigation("BookCategories");
+
                     b.Navigation("Inventory")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BookHavenLibrary.Models.Category", b =>
+                {
+                    b.Navigation("BookCategories");
                 });
 
             modelBuilder.Entity("BookHavenLibrary.Models.Order", b =>

@@ -3240,11 +3240,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\bhatt\\source\\repos\\BookHavenLibrary\\BookHavenLibrary\\BookHavenLibrary.csproj",
+      "projectUniqueName": "C:\\Users\\bhatt\\Desktop\\new-random\\new-random\\BookHavenLibrary\\BookHavenLibrary.csproj",
       "projectName": "BookHavenLibrary",
-      "projectPath": "C:\\Users\\bhatt\\source\\repos\\BookHavenLibrary\\BookHavenLibrary\\BookHavenLibrary.csproj",
+      "projectPath": "C:\\Users\\bhatt\\Desktop\\new-random\\new-random\\BookHavenLibrary\\BookHavenLibrary.csproj",
       "packagesPath": "C:\\Users\\bhatt\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\bhatt\\source\\repos\\BookHavenLibrary\\BookHavenLibrary\\obj\\",
+      "outputPath": "C:\\Users\\bhatt\\Desktop\\new-random\\new-random\\BookHavenLibrary\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

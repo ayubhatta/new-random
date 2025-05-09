@@ -9,6 +9,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenAnyIP(5085); // Listen on all network interfaces at port 5085
+});
+
 // Load JWT Settings
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var key = jwtSettings["Key"];
@@ -85,6 +90,18 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
+});
+
+
 builder.Services.AddSignalR();
 
 // Configure application services
@@ -107,6 +124,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapHub<OrderHub>("/orderHub");
+
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
