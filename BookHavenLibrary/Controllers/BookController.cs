@@ -20,7 +20,7 @@ namespace BookHavenLibrary.Controllers
     {
         private readonly IBookRepository _bookRepository;
         private readonly IInventoryRepository _inventoryRepository;
-        private const int MaxImageWidth = 1024;  // Max width for resizing images
+        private const int MaxImageWidth = 1024;  // Max width for resizing imagesn 
         private readonly ILogger<BookController> _logger;
 
 
@@ -364,25 +364,57 @@ namespace BookHavenLibrary.Controllers
                 if (book == null)
                     return NotFound(new { success = false, message = "Book not found." });
 
-                // Update book fields
-                book.Title = dto.Title;
-                book.Description = dto.Description;
-                book.AuthorName = dto.AuthorName;
-                book.PublisherName = dto.PublisherName;
-                book.Price = dto.Price;
-                book.Format = dto.Format;
-                book.Language = dto.Language;
-                book.PublicationDate = dto.PublicationDate.Kind == DateTimeKind.Utc
-                    ? dto.PublicationDate
-                    : dto.PublicationDate.ToUniversalTime();
-                book.PageCount = dto.PageCount;
-                book.IsBestseller = dto.IsBestseller;
-                book.IsAwardWinner = dto.IsAwardWinner;
-                book.IsNewRelease = dto.IsNewRelease;
-                book.NewArrival = dto.NewArrival;
-                book.CommingSoon = dto.CommingSoon;
+                // Update only provided fields
+                if (!string.IsNullOrWhiteSpace(dto.Title))
+                    book.Title = dto.Title;
+
+                if (!string.IsNullOrWhiteSpace(dto.Description))
+                    book.Description = dto.Description;
+
+                if (!string.IsNullOrWhiteSpace(dto.AuthorName))
+                    book.AuthorName = dto.AuthorName;
+
+                if (!string.IsNullOrWhiteSpace(dto.PublisherName))
+                    book.PublisherName = dto.PublisherName;
+
+                if (dto.Price.HasValue)
+                    book.Price = dto.Price.Value;
+
+                if (!string.IsNullOrWhiteSpace(dto.Format))
+                    book.Format = dto.Format;
+
+                if (!string.IsNullOrWhiteSpace(dto.Language))
+                    book.Language = dto.Language;
+
+                if (dto.PublicationDate.HasValue)
+                {
+                    book.PublicationDate = dto.PublicationDate.Value.Kind == DateTimeKind.Utc
+                        ? dto.PublicationDate.Value
+                        : dto.PublicationDate.Value.ToUniversalTime();
+                }
+
+                if (dto.PageCount.HasValue)
+                    book.PageCount = dto.PageCount.Value;
+
+                if (dto.IsBestseller.HasValue)
+                    book.IsBestseller = dto.IsBestseller.Value;
+
+                if (dto.IsAwardWinner.HasValue)
+                    book.IsAwardWinner = dto.IsAwardWinner.Value;
+
+                if (dto.IsNewRelease.HasValue)
+                    book.IsNewRelease = dto.IsNewRelease.Value;
+
+                if (dto.NewArrival.HasValue)
+                    book.NewArrival = dto.NewArrival.Value;
+
+                if (dto.CommingSoon.HasValue)
+                    book.CommingSoon = dto.CommingSoon.Value;
+
+                if (dto.IsActive.HasValue)
+                    book.IsActive = dto.IsActive.Value;
+
                 book.UpdatedAt = DateTime.UtcNow;
-                book.IsActive = dto.IsActive;
 
                 // Handle new cover image
                 if (dto.CoverImage != null)
@@ -394,16 +426,30 @@ namespace BookHavenLibrary.Controllers
                     book.CoverImageUrl = imgBBUrl;
                 }
 
-                // Update inventory
+                // Update inventory if needed
                 var inventory = await _inventoryRepository.GetByBookIdAsync(book.Id);
                 if (inventory != null)
                 {
-                    inventory.QuantityInStock = dto.Quantity;
-                    inventory.ReorderThreshold = dto.ReorderThreshold;
-                    inventory.LastStockedDate = DateTime.UtcNow;
-                    inventory.IsAvailable = dto.Quantity > 0;
+                    bool inventoryUpdated = false;
 
-                    await _inventoryRepository.UpdateAsync(inventory);
+                    if (dto.Quantity.HasValue)
+                    {
+                        inventory.QuantityInStock = dto.Quantity.Value;
+                        inventory.IsAvailable = dto.Quantity.Value > 0;
+                        inventoryUpdated = true;
+                    }
+
+                    if (dto.ReorderThreshold.HasValue)
+                    {
+                        inventory.ReorderThreshold = dto.ReorderThreshold.Value;
+                        inventoryUpdated = true;
+                    }
+
+                    if (inventoryUpdated)
+                    {
+                        inventory.LastStockedDate = DateTime.UtcNow;
+                        await _inventoryRepository.UpdateAsync(inventory);
+                    }
                 }
 
                 await _bookRepository.UpdateAsync(book);
@@ -415,6 +461,7 @@ namespace BookHavenLibrary.Controllers
                 return StatusCode(500, new { success = false, message = $"Internal server error: {ex.Message}" });
             }
         }
+
 
 
 
