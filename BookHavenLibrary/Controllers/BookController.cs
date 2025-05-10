@@ -155,7 +155,8 @@ namespace BookHavenLibrary.Controllers
                         b.Title.Contains(search) ||
                         b.AuthorName.Contains(search) ||
                         b.PublisherName.Contains(search) ||
-                        b.ISBN.Contains(search));
+                        b.ISBN.Contains(search) ||
+                        b.Language.Contains(search));
                 }
 
                 // Join with Inventory data
