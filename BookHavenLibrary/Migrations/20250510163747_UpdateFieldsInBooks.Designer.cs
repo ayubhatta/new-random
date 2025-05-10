@@ -3,6 +3,7 @@ using System;
 using BookHavenLibrary.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BookHavenLibrary.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250510163747_UpdateFieldsInBooks")]
+    partial class UpdateFieldsInBooks
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -107,8 +110,8 @@ namespace BookHavenLibrary.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("NewArrival")
-                        .HasColumnType("boolean");
+                    b.Property<DateTime>("NewArrival")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("PageCount")
                         .HasColumnType("integer");

@@ -12,11 +12,13 @@ namespace BookHavenLibrary.Controllers
     public class DiscountController : ControllerBase
     {
         private readonly IDiscountRepository _discountRepo;
+        private readonly IBookRepository _bookRepo;
         private readonly UserManager<User> _userManager;
 
-        public DiscountController(IDiscountRepository discountRepo, UserManager<User> userManager)
+        public DiscountController(IDiscountRepository discountRepo, IBookRepository bookRepo, UserManager<User> userManager)
         {
             _discountRepo = discountRepo;
+            _bookRepo = bookRepo;
             _userManager = userManager;
         }
 
@@ -49,6 +51,11 @@ namespace BookHavenLibrary.Controllers
             if (discountDto.StartDate >= discountDto.EndDate)
                 return BadRequest(new { success = false, message = "Start date must be before end date." });
 
+            // Check if the book exists
+            var book = await _bookRepo.GetByIdAsync(discountDto.BookId);
+            if (book == null)
+                return NotFound(new { success = false, message = "Book not found." });
+
             var discount = new Discount
             {
                 BookId = discountDto.BookId,
@@ -63,6 +70,7 @@ namespace BookHavenLibrary.Controllers
             await _discountRepo.AddAsync(discount);
             return Ok(new { success = true, message = "Discount created.", data = discount });
         }
+
 
         [Authorize(Roles = "admin")]
         [HttpPut("{id}")]

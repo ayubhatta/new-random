@@ -8,6 +8,8 @@ using System.Text.Json;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace BookHavenLibrary.Controllers
@@ -176,6 +178,8 @@ namespace BookHavenLibrary.Controllers
                     b.IsBestseller,
                     b.IsAwardWinner,
                     b.IsNewRelease,
+                    b.NewArrival,
+                    b.CommingSoon,
                     b.CoverImageUrl,
                     b.CreatedAt,
                     b.UpdatedAt,
@@ -244,6 +248,8 @@ namespace BookHavenLibrary.Controllers
                     book.IsBestseller,
                     book.IsAwardWinner,
                     book.IsNewRelease,
+                    book.NewArrival,
+                    book.CommingSoon,
                     book.CoverImageUrl,
                     book.CreatedAt,
                     book.UpdatedAt,
@@ -268,6 +274,7 @@ namespace BookHavenLibrary.Controllers
 
 
         [HttpPost("create")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> Create([FromForm] BookCreateDto dto)
         {
             try
@@ -309,6 +316,8 @@ namespace BookHavenLibrary.Controllers
                     IsBestseller = dto.IsBestseller,
                     IsAwardWinner = dto.IsAwardWinner,
                     IsNewRelease = dto.IsNewRelease,
+                    NewArrival = dto.NewArrival,
+                    CommingSoon = dto.CommingSoon,
                     CoverImageUrl = imgBBUrl, // Store the ImgBB URL directly in the Book model
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -370,6 +379,8 @@ namespace BookHavenLibrary.Controllers
                 book.IsBestseller = dto.IsBestseller;
                 book.IsAwardWinner = dto.IsAwardWinner;
                 book.IsNewRelease = dto.IsNewRelease;
+                book.NewArrival = dto.NewArrival;
+                book.CommingSoon = dto.CommingSoon;
                 book.UpdatedAt = DateTime.UtcNow;
                 book.IsActive = dto.IsActive;
 

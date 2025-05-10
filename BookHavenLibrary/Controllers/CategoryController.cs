@@ -76,7 +76,7 @@ namespace BookHavenLibrary.Controllers
 
         // Create a new category
         [HttpPost]
-        public async Task<IActionResult> CreateCategory([FromBody] CategoryDto categoryDto)
+        public async Task<IActionResult> CreateCategory(CategoryDto categoryDto)
         {
             try
             {

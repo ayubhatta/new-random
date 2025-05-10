@@ -17,6 +17,8 @@ namespace BookHavenLibrary.DTOs
         public bool IsBestseller { get; set; }
         public bool IsAwardWinner { get; set; }
         public bool IsNewRelease { get; set; }
+        public bool NewArrival { get; set; }
+        public bool CommingSoon { get; set; }
         public bool IsActive { get; set; }
 
         [Range(0, int.MaxValue, ErrorMessage = "Quantity must be 0 or greater.")]
