@@ -191,7 +191,7 @@ namespace BookHavenLibrary.Controllers
         }
 
 
-        [HttpGet("category/{categoryId}/books")]
+        [HttpGet("{categoryId}/books")]
         public async Task<IActionResult> GetBooksByCategory(int categoryId)
         {
             try

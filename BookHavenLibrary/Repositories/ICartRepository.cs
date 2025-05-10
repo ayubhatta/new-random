@@ -10,7 +10,6 @@ namespace BookHavenLibrary.Repositories
         Task UpdateCartItemAsync(CartItem item);
         Task RemoveCartItemAsync(int itemId);
         Task CancelCartAsync(int userId);
-        Task<bool> MakePaymentAsync(int userId);
         Task<List<ShoppingCart>> GetPaidCartsByUserAsync(int userId);
         Task<bool> AddToCartAsync(int userId, int bookId, int quantity);
     }

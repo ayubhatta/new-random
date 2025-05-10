@@ -105,41 +105,6 @@ namespace BookHavenLibrary.Repositories
             }
         }
 
-        public async Task<bool> MakePaymentAsync(int userId)
-        {
-            var cart = await GetCartByUserIdAsync(userId);
-            if (cart == null) return false;
-
-            // Remove cart items
-            var items = await _context.CartItems
-                .Where(ci => ci.ShoppingCartId == cart.Id)
-                .ToListAsync();
-
-            if (!items.Any()) return false;
-
-            foreach (var item in items)
-            {
-                var purchase = new Purchase
-                {
-                    UserId = userId,
-                    BookId = item.BookId,
-                    PurchaseDate = DateTime.UtcNow
-                };
-                await _purchaseRepo.AddAsync(purchase);
-            }
-
-
-            _context.CartItems.RemoveRange(items);
-
-            // Mark payment as done
-            cart.IsPaymentDone = true;
-            cart.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-
         public async Task<List<ShoppingCart>> GetPaidCartsByUserAsync(int userId)
         {
             return await _context.ShoppingCarts

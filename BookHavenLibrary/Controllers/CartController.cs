@@ -78,18 +78,5 @@ namespace BookHavenLibrary.Controllers
         }
 
 
-        [HttpPost("make-payment")]
-        public async Task<IActionResult> MakePayment()
-        {
-            var userId = GetUserId();
-            var success = await _cartRepo.MakePaymentAsync(userId);
-
-            if (!success)
-                return NotFound(new { success = false, message = "Cart not found." });
-
-            return Ok(new { success = true, message = "Payment successful. Cart items removed." });
-        }
-
-
     }
 }
