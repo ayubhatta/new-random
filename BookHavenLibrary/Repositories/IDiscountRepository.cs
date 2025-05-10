@@ -10,5 +10,7 @@ namespace BookHavenLibrary.Repositories
         Task UpdateAsync(Discount discount);
         Task DeleteAsync(int id);
         Task<IEnumerable<Discount>> GetExpiredDiscountsAsync();
+        Task<Discount?> GetByBookIdAsync(int bookId);
+
     }
 }

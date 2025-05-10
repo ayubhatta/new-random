@@ -47,5 +47,13 @@ namespace BookHavenLibrary.Repositories
                 .Where(d => d.IsActive && d.EndDate <= DateTime.UtcNow)
                 .ToListAsync();
         }
+
+        public async Task<Discount?> GetByBookIdAsync(int bookId)
+        {
+            return await _context.Discounts
+                .Where(d => d.BookId == bookId)
+                .OrderByDescending(d => d.StartDate) // If there are multiple, get the most recent
+                .FirstOrDefaultAsync();
+        }
     }
 }
