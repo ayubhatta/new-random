@@ -41,5 +41,13 @@ namespace BookHavenLibrary.Repositories
             _context.Bookmarks.Remove(bookmark);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<Bookmark>> GetByUserIdAsync(int userId) // ✅ New method
+        {
+            return await _context.Bookmarks
+                .Where(b => b.UserId == userId)
+                .ToListAsync();
+        }
+
     }
 }

@@ -23,24 +23,33 @@ namespace BookHavenLibrary.Controllers
             _bookRepository = bookRepository;
         }
 
-        // GET: api/Bookmark
+        [Authorize(Roles = "member")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var bookmarks = await _bookmarkRepository.GetAllAsync();
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out int userId))
+                return Unauthorized(new { success = false, message = "Invalid user token." });
+
+            var bookmarks = await _bookmarkRepository.GetByUserIdAsync(userId);
             return Ok(new { success = true, message = "Bookmarks fetched successfully.", data = bookmarks });
         }
 
-        // GET: api/Bookmark/5
+        [Authorize(Roles = "member")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var bookmark = await _bookmarkRepository.GetByIdAsync(id);
-            if (bookmark == null)
-                return NotFound(new { success = false, message = "Bookmark not found." });
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out int userId))
+                return Unauthorized(new { success = false, message = "Invalid user token." });
 
-            return Ok(new { success = true, message= "Bookmarks fetched successfully.", data = bookmark });
+            var bookmark = await _bookmarkRepository.GetByIdAsync(id);
+            if (bookmark == null || bookmark.UserId != userId)
+                return NotFound(new { success = false, message = "Bookmark not found or access denied." });
+
+            return Ok(new { success = true, message = "Bookmark fetched successfully.", data = bookmark });
         }
+
 
 
         [Authorize(Roles = "member")]

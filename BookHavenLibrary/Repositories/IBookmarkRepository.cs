@@ -9,5 +9,6 @@ namespace BookHavenLibrary.Repositories.Interfaces
         Task AddAsync(Bookmark bookmark);
         Task UpdateAsync(Bookmark bookmark);
         Task DeleteAsync(Bookmark bookmark);
+        Task<IEnumerable<Bookmark>> GetByUserIdAsync(int userId);
     }
 }
