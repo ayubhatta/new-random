@@ -1,11 +1,12 @@
 using BookHavenLibrary.Data;
 using BookHavenLibrary.Models;
-using BookHavenLibrary.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,26 +15,23 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.ListenAnyIP(5085); // Listen on all network interfaces at port 5085
 });
 
-// Load JWT Settings
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var key = jwtSettings["Key"];
+// ------------------ CONFIGURATION ------------------
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = jwtSettings["Key"] ?? throw new InvalidOperationException("JWT key is missing in configuration!");
+var issuer = jwtSettings["Issuer"];
+var audience = jwtSettings["Audience"];
 
-// Configure JwtTokenInfo options
-builder.Services.Configure<JwtTokenInfo>(jwtSettings);
-
-// Register custom services
-builder.Services.AddScoped<ITokenService, TokenService>();
-
-// Add DbContext
+// ------------------ DB CONTEXT ------------------
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add Identity
+// ------------------ IDENTITY ------------------
 builder.Services.AddIdentity<User, IdentityRole<int>>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-// Configure JWT Authentication
+
+// ------------------ JWT AUTHENTICATION ------------------
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -41,21 +39,37 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!)),
-        RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
-        ClockSkew = TimeSpan.Zero
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+        ClockSkew = TimeSpan.Zero,
+        NameClaimType = ClaimTypes.Name,
+        RoleClaimType = ClaimTypes.Role
     };
 });
 
-// Add Swagger with JWT Auth
+// ------------------ AUTHORIZATION ------------------
+builder.Services.AddAuthorization();
+
+// ------------------ CONTROLLERS ------------------
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
+builder.Services.AddEndpointsApiExplorer();
+
+// ------------------ SWAGGER ------------------
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
@@ -90,7 +104,6 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
@@ -101,34 +114,31 @@ builder.Services.AddCors(options =>
     });
 });
 
-
+// ------------------ SIGNALR ------------------
 builder.Services.AddSignalR();
 
-// Configure application services
-BookHavenLibraryStartup.ConfigureServices(builder.Services);
+// ------------------ BACKGROUND SERVICES ------------------
 builder.Services.AddHostedService<BookHavenLibrary.Services.BackgroundServices.AnnouncementStatusService>();
 builder.Services.AddHostedService<BookHavenLibrary.Services.BackgroundServices.DiscountStatusService>();
 
+// ------------------ CUSTOM CONFIG ------------------
+BookHavenLibraryStartup.ConfigureServices(builder.Services);
 
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-
+// ------------------ BUILD APP ------------------
 var app = builder.Build();
 
-// Use Swagger in development
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+app.UseHttpsRedirection();
+
 app.MapHub<OrderHub>("/orderHub");
-
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
+
 app.Run();

@@ -6,7 +6,7 @@ public static class BookHavenLibraryStartup
 {
     public static void ConfigureServices(IServiceCollection services)
     {
-        services.AddTransient<ITokenService, TokenService>();
+        //services.AddTransient<ITokenService, TokenService>();
         services.AddTransient<IBookRepository, BookRepository>();
         services.AddTransient<IBookmarkRepository, BookmarkRepository>();
         services.AddTransient<IAnnouncementRepository, AnnouncementRepository>();
