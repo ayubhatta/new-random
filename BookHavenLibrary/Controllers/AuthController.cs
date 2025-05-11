@@ -106,6 +106,9 @@ namespace BookHavenLibrary.Controllers
 
             var token = await GenerateJwtToken(user);
 
+            var roles = await _userManager.GetRolesAsync(user);
+             
+
             return Ok(new
             {
                 success = true,
@@ -113,9 +116,11 @@ namespace BookHavenLibrary.Controllers
                 token,
                 userId = user.Id,
                 username = user.UserName,
-                email = user.Email
+                email = user.Email,
+                roles
             });
         }
+
 
         [Authorize]
         [HttpGet("protected")]
@@ -322,7 +327,12 @@ namespace BookHavenLibrary.Controllers
             }
         }
 
-
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return Ok(new {success = true, message = "Logged out successfully" });
+        }
 
     }
 }
