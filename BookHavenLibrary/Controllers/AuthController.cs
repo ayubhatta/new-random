@@ -236,23 +236,29 @@ namespace BookHavenLibrary.Controllers
         }
 
 
-
+        [Authorize(Roles = "admin")]
         [HttpDelete("delete/{userId}")]
         public async Task<IActionResult> Delete(int userId)
         {
             try
             {
-                // Find the user by ID
                 var user = await _userManager.FindByIdAsync(userId.ToString());
                 if (user == null)
                     return NotFound("User not found.");
 
-                // Ensure the user is not trying to delete themselves (optional, based on your business rules)
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get current logged-in user ID
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (currentUserId == user.Id.ToString())
                     return BadRequest("You cannot delete your own account.");
 
-                // Delete the user from the database
+                // Delete related entities manually
+                var cartItems = _context.ShoppingCarts.Where(c => c.UserId == user.Id);
+                _context.ShoppingCarts.RemoveRange(cartItems);
+
+
+                // Add other dependent removals here
+
+                await _context.SaveChangesAsync(); // Save before deleting user
+
                 var result = await _userManager.DeleteAsync(user);
                 if (!result.Succeeded)
                     return BadRequest("Failed to delete user.");
@@ -261,71 +267,65 @@ namespace BookHavenLibrary.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception (if you have a logger) and return a generic error message
-                return StatusCode(500, $"An error occurred while processing your request: {ex.Message}");
+                return StatusCode(500, $"An error occurred: {ex.Message}");
             }
         }
 
 
-        [Authorize(Roles = "admin")]  // Ensures only Admin can access
+
+
+        [Authorize(Roles = "admin")]
         [HttpPut("Update-role/{userId}")]
         public async Task<IActionResult> UpdateRole(int userId)
         {
             try
             {
-                // Find the user by ID
                 var user = await _userManager.FindByIdAsync(userId.ToString());
                 if (user == null)
                     return NotFound("User not found.");
 
-                // Get the user's roles
                 var userRoles = await _userManager.GetRolesAsync(user);
-                if (!userRoles.Contains("member"))
-                    return BadRequest("User is not a member or already has a different role.");
+                if (userRoles.Contains("admin"))
+                    return BadRequest("Cannot change role of an admin.");
 
-                // Ensure the 'staff' role exists
-                var staffRole = await _roleManager.FindByNameAsync("staff");
-                if (staffRole == null)
+                // Ensure 'staff' role exists
+                if (!await _roleManager.RoleExistsAsync("staff"))
                 {
-                    // Create the 'staff' role if it doesn't exist
-                    var createRoleResult = await _roleManager.CreateAsync(new IdentityRole<int> { Name = "staff" });
+                    var createRoleResult = await _roleManager.CreateAsync(new IdentityRole<int>("staff"));
                     if (!createRoleResult.Succeeded)
                         return BadRequest("Failed to create 'staff' role.");
                 }
 
-                // Start a transaction
-                using (var transaction = await _context.Database.BeginTransactionAsync())
-                {
-                    try
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
+                    // Remove existing roles
+                    foreach (var role in userRoles)
                     {
-                        // Remove 'member' role
-                        var removeRoleResult = await _userManager.RemoveFromRoleAsync(user, "member");
-                        if (!removeRoleResult.Succeeded)
-                            return BadRequest("Failed to remove 'member' role.");
+                        var removeResult = await _userManager.RemoveFromRoleAsync(user, role);
+                        if (!removeResult.Succeeded)
+                        {
+                            await transaction.RollbackAsync();
+                            return BadRequest($"Failed to remove role: {role}");
+                        }
+                    }
 
-                        // Assign 'staff' role
-                        var addRoleResult = await _userManager.AddToRoleAsync(user, "staff");
-                        if (!addRoleResult.Succeeded)
-                            return BadRequest("Failed to assign 'staff' role.");
+                    // Add staff role
+                    var addResult = await _userManager.AddToRoleAsync(user, "staff");
+                    if (!addResult.Succeeded)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest("Failed to assign 'staff' role.");
+                    }
 
-                        // Commit the transaction
                         await transaction.CommitAsync();
-
-                        return Ok($"User {user.Email} role updated to 'staff'.");
+                        return Ok(new { success = true, message = $"User {user.Email} role updated to 'staff'" });
                     }
                     catch (Exception ex)
                     {
-                        // Rollback the transaction if something fails
-                        await transaction.RollbackAsync();
-                        return StatusCode(500, $"An error occurred while processing your request: {ex.Message}");
+                        return StatusCode(500, $"An error occurred: {ex.Message}");
                     }
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An error occurred while processing your request: {ex.Message}");
-            }
-        }
+    }
+
 
         [HttpPost("logout")]
         [Authorize]

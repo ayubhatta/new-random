@@ -134,6 +134,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseDeveloperExceptionPage();
 
 app.MapHub<OrderHub>("/orderHub");
 app.UseCors("AllowAll");

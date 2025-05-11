@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace BookHavenLibrary.Controllers
 {
+    //[Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class BookController : ControllerBase
@@ -142,6 +143,7 @@ namespace BookHavenLibrary.Controllers
 
 
         [HttpGet("GetAllBooks")]
+       
         public async Task<IActionResult> GetAllBooks([FromQuery] int? draw = 1, [FromQuery] int? start = 0, [FromQuery] int? length = 10, [FromQuery] string search = "")
         {
             try
@@ -222,6 +224,7 @@ namespace BookHavenLibrary.Controllers
 
 
         [HttpGet("{id}")]
+        
         public async Task<IActionResult> GetById(int id)
         {
             try
@@ -356,6 +359,7 @@ namespace BookHavenLibrary.Controllers
 
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> Update(int id, [FromForm] BookUpdateDto dto)
         {
             try
@@ -466,6 +470,7 @@ namespace BookHavenLibrary.Controllers
 
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try

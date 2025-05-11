@@ -1,9 +1,12 @@
-﻿using BookHavenLibrary.Models;
+﻿using BookHavenLibrary.Data;
+using BookHavenLibrary.DTO;
+using BookHavenLibrary.Models;
 using BookHavenLibrary.Repositories;
 using BookHavenLibrary.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace BookHavenLibrary.Controllers
@@ -15,14 +18,18 @@ namespace BookHavenLibrary.Controllers
         private readonly IBookmarkRepository _bookmarkRepository;
         private readonly UserManager<User> _userManager; // Use the UserManager for Identity framework
         private readonly IBookRepository _bookRepository;
+        private readonly AppDbContext _context;
 
-        public BookmarkController(IBookmarkRepository bookmarkRepository, UserManager<User> userManager, IBookRepository bookRepository)
+        public BookmarkController(IBookmarkRepository bookmarkRepository, UserManager<User> userManager, IBookRepository bookRepository, AppDbContext appDbContext)
         {
             _bookmarkRepository = bookmarkRepository;
             _userManager = userManager;
             _bookRepository = bookRepository;
+            _context = appDbContext;
         }
 
+        [Authorize(Roles = "member")]
+        [HttpGet]
         [Authorize(Roles = "member")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -32,7 +39,55 @@ namespace BookHavenLibrary.Controllers
                 return Unauthorized(new { success = false, message = "Invalid user token." });
 
             var bookmarks = await _bookmarkRepository.GetByUserIdAsync(userId);
-            return Ok(new { success = true, message = "Bookmarks fetched successfully.", data = bookmarks });
+
+            var result = new List<BookmarkWithBookDto>();
+
+            foreach (var bookmark in bookmarks)
+            {
+                var book = await _context.Books
+                    .Include(b => b.Inventory)
+                    .FirstOrDefaultAsync(b => b.Id == bookmark.BookId);
+
+                if (book == null) continue; // Skip if book not found
+
+                result.Add(new BookmarkWithBookDto
+                {
+                    Id = bookmark.Id,
+                    UserId = bookmark.UserId,
+                    BookId = bookmark.BookId,
+                    Book = new BookDto
+                    {
+                        Id = book.Id,
+                        Title = book.Title,
+                        Description = book.Description,
+                        AuthorName = book.AuthorName,
+                        PublisherName = book.PublisherName,
+                        Isbn = book.ISBN,
+                        Price = book.Price,
+                        Format = book.Format,
+                        Language = book.Language,
+                        PublicationDate = book.PublicationDate,
+                        PageCount = book.PageCount,
+                        IsBestseller = book.IsBestseller,
+                        IsAwardWinner = book.IsAwardWinner,
+                        IsNewRelease = book.IsNewRelease,
+                        NewArrival = book.NewArrival,
+                        CommingSoon = book.CommingSoon,
+                        CoverImageUrl = book.CoverImageUrl,
+                        CreatedAt = book.CreatedAt,
+                        UpdatedAt = book.UpdatedAt,
+                        IsActive = book.IsActive,
+                        Inventory = new InventoryDto
+                        {
+                            QuantityInStock = book.Inventory.QuantityInStock,
+                            ReorderThreshold = book.Inventory.ReorderThreshold,
+                            IsAvailable = book.Inventory.IsAvailable
+                        }
+                    }
+                });
+            }
+
+            return Ok(new { success = true, message = "Bookmarks fetched successfully.", data = result });
         }
 
         [Authorize(Roles = "member")]
@@ -47,8 +102,52 @@ namespace BookHavenLibrary.Controllers
             if (bookmark == null || bookmark.UserId != userId)
                 return NotFound(new { success = false, message = "Bookmark not found or access denied." });
 
-            return Ok(new { success = true, message = "Bookmark fetched successfully.", data = bookmark });
+            var book = await _context.Books
+                .Include(b => b.Inventory)
+                .FirstOrDefaultAsync(b => b.Id == bookmark.BookId);
+
+            if (book == null)
+                return NotFound(new { success = false, message = "Book not found." });
+
+            var result = new BookmarkWithBookDto
+            {
+                Id = bookmark.Id,
+                UserId = bookmark.UserId,
+                BookId = bookmark.BookId,
+                Book = new BookDto
+                {
+                    Id = book.Id,
+                    Title = book.Title,
+                    Description = book.Description,
+                    AuthorName = book.AuthorName,
+                    PublisherName = book.PublisherName,
+                    Isbn = book.ISBN,
+                    Price = book.Price,
+                    Format = book.Format,
+                    Language = book.Language,
+                    PublicationDate = book.PublicationDate,
+                    PageCount = book.PageCount,
+                    IsBestseller = book.IsBestseller,
+                    IsAwardWinner = book.IsAwardWinner,
+                    IsNewRelease = book.IsNewRelease,
+                    NewArrival = book.NewArrival,
+                    CommingSoon = book.CommingSoon,
+                    CoverImageUrl = book.CoverImageUrl,
+                    CreatedAt = book.CreatedAt,
+                    UpdatedAt = book.UpdatedAt,
+                    IsActive = book.IsActive,
+                    Inventory = new InventoryDto
+                    {
+                        QuantityInStock = book.Inventory.QuantityInStock,
+                        ReorderThreshold = book.Inventory.ReorderThreshold,
+                        IsAvailable = book.Inventory.IsAvailable
+                    }
+                }
+            };
+
+            return Ok(new { success = true, message = "Bookmark fetched successfully.", data = result });
         }
+
 
 
 
