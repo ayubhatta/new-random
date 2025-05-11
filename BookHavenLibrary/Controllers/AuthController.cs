@@ -328,11 +328,13 @@ namespace BookHavenLibrary.Controllers
         }
 
         [HttpPost("logout")]
-        public async Task<IActionResult> Logout()
+        [Authorize]
+        public IActionResult Logout()
         {
-            await _signInManager.SignOutAsync();
-            return Ok(new {success = true, message = "Logged out successfully" });
+            // In JWT, logout is handled on client side by removing the token
+            return Ok(new { success = true, message = "Logged out successfully" });
         }
+
 
     }
 }

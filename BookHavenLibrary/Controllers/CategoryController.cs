@@ -201,11 +201,54 @@ namespace BookHavenLibrary.Controllers
                     return NotFound(new { success = false, message = "Category not found." });
 
                 var books = await _context.BookCategories
-                    .Where(bc => bc.CategoryId == categoryId)
-                    .Select(bc => bc.Book)
-                    .ToListAsync();
+                        .Where(bc => bc.CategoryId == categoryId)
+                        .Include(bc => bc.Book)
+                            .ThenInclude(b => b.Inventory)
+                        .Include(bc => bc.Book)
+                        .Select(bc => bc.Book)
+                        .ToListAsync();
 
-                return Ok(new { success = true, data = books });
+
+                var response = new
+                {
+                    Category = new
+                    {
+                        category.Id,
+                        category.Name,
+                        category.Description
+                    },
+                    Books = books.Select(book => new
+                    {
+                        book.Id,
+                        book.Title,
+                        book.Description,
+                        book.AuthorName,
+                        book.PublisherName,
+                        book.ISBN,
+                        book.Price,
+                        book.Format,
+                        book.Language,
+                        book.PublicationDate,
+                        book.PageCount,
+                        book.IsBestseller,
+                        book.IsAwardWinner,
+                        book.IsNewRelease,
+                        book.NewArrival,
+                        book.CommingSoon,
+                        book.CoverImageUrl,
+                        book.CreatedAt,
+                        book.UpdatedAt,
+                        book.IsActive,
+                        Inventory = book.Inventory != null ? new
+                        {
+                            book.Inventory.QuantityInStock,
+                            book.Inventory.ReorderThreshold,
+                            book.Inventory.IsAvailable
+                        } : null
+                    })
+                };
+
+                return Ok(new { success = true, data = response });
             }
             catch (Exception ex)
             {
@@ -213,5 +256,6 @@ namespace BookHavenLibrary.Controllers
                 return StatusCode(500, new { success = false, message = "Internal server error." });
             }
         }
+
     }
 }
