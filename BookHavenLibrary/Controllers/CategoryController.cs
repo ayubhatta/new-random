@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookHavenLibrary.Controllers
 {
-    [Authorize(Roles = "admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class CategoryController : ControllerBase
@@ -76,6 +75,8 @@ namespace BookHavenLibrary.Controllers
             }
         }
 
+
+        [Authorize(Roles = "admin")]
         // Create a new category
         [HttpPost]
         public async Task<IActionResult> CreateCategory(CategoryDto categoryDto)
@@ -108,6 +109,8 @@ namespace BookHavenLibrary.Controllers
             }
         }
 
+
+        [Authorize(Roles = "admin")]
         // Update an existing category
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryUpdateDto categoryDto)
@@ -138,6 +141,8 @@ namespace BookHavenLibrary.Controllers
             }
         }
 
+
+        [Authorize(Roles = "admin")]
         // Delete a category
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
@@ -157,6 +162,8 @@ namespace BookHavenLibrary.Controllers
             }
         }
 
+
+        [Authorize(Roles = "admin")]
         [HttpPost("assign-categories/{bookId}")]
         public async Task<IActionResult> AssignCategoriesToBook(int bookId, [FromBody] List<int> categoryIds)
         {
