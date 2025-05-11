@@ -36,6 +36,7 @@ namespace BookHavenLibrary.Controllers
                 var categories = await _categoryRepository.GetAllAsync();
                 var categoriesDto = categories.Select(c => new CategoryDto
                 {
+                    Id = c.Id,
                     Name = c.Name,
                     Description = c.Description
                 });
@@ -61,6 +62,7 @@ namespace BookHavenLibrary.Controllers
 
                 var categoryDto = new CategoryDto
                 {
+                    Id = category.Id,
                     Name = category.Name,
                     Description = category.Description
                 };
