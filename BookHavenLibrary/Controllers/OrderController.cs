@@ -161,7 +161,9 @@ namespace BookHavenLibrary.Controllers
         // ✅ Staff Claim Processing
         [Authorize(Roles = "staff")]
         [HttpPost("process-claim")]
-        public async Task<IActionResult> ProcessClaim(string claimCode)
+        
+        public async Task<IActionResult> ProcessClaim([FromQuery] string claimCode)
+
         {
             if (string.IsNullOrWhiteSpace(claimCode))
                 return BadRequest("Claim code is required.");
@@ -228,14 +230,28 @@ namespace BookHavenLibrary.Controllers
         public async Task<IActionResult> GetOrderById(int id)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
 
-            var order = await _context.Orders
+            var orderQuery = _context.Orders
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Book)
-                .FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId);
+                .AsQueryable();
+
+            Order? order;
+
+            if (userRole == "admin" || userRole == "staff")
+            {
+                // Admins and staff can access any order
+                order = await orderQuery.FirstOrDefaultAsync(o => o.Id == id);
+            }
+            else
+            {
+                // Members can only access their own orders
+                order = await orderQuery.FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId);
+            }
 
             if (order == null)
-                return NotFound();
+                return NotFound(new {success = false, message = "No orders found."});
 
             var orderDto = new OrderDto
             {
@@ -263,6 +279,7 @@ namespace BookHavenLibrary.Controllers
 
             return Ok(orderDto);
         }
+
 
 
         // ✅ Calculate Discount (5% for 5+ books, +10% after 10 completed orders)
@@ -436,20 +453,67 @@ namespace BookHavenLibrary.Controllers
             await smtp.SendMailAsync(message);
         }
 
+        [Authorize(Roles = "staff")]
+        [HttpGet("history")]
+        public async Task<IActionResult> GetOrderHistory()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var orders = await _context.Orders
+                .Where(o => o.UserId == userId && o.Status == "completed")
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Book)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+
+            var orderHistory = orders.Select(o => new OrderDto
+            {
+                Id = o.Id,
+                UserId = o.UserId,
+                OrderDate = o.OrderDate,
+                TotalAmount = o.TotalAmount,
+                DiscountAmount = o.DiscountAmount,
+                FinalAmount = o.FinalAmount,
+                ClaimCode = o.ClaimCode,
+                Status = o.Status,
+                PickupDate = o.PickupDate,
+                ProcessedBy = o.ProcessedBy,
+                OrderItems = o.OrderItems.Select(oi => new OrderItemDto
+                {
+                    Id = oi.Id,
+                    BookId = oi.BookId,
+                    BookTitle = oi.Book?.Title,
+                    AuthorName = oi.Book?.AuthorName,
+                    PriceAtOrder = oi.PriceAtOrder,
+                    Quantity = oi.Quantity,
+                    Subtotal = oi.Subtotal
+                }).ToList()
+            });
+
+            return Ok(new
+            {
+                success = true,
+                message = "Completed order history retrieved successfully.",
+                data = orderHistory
+            });
+        }
 
 
 
         [Authorize(Roles = "staff")]
         [HttpPost("complete-order")]
-        public async Task<IActionResult> CompleteOrder(int orderId)
+        public async Task<IActionResult> CompleteOrder([FromQuery] string claimCode)
         {
+            if (string.IsNullOrWhiteSpace(claimCode))
+                return BadRequest("Claim code is required.");
+
             var order = await _context.Orders
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Book)
-                .FirstOrDefaultAsync(o => o.Id == orderId);
+                .FirstOrDefaultAsync(o => o.ClaimCode == claimCode && o.Status == "ready_for_pickup");
 
-            if (order == null || order.Status != "ready_for_pickup")
-                return BadRequest("Order is not ready for completion.");
+            if (order == null)
+                return BadRequest("Order is not ready for completion or claim code is invalid.");
 
             order.Status = "completed";
             order.UpdatedAt = DateTime.UtcNow;
@@ -465,15 +529,15 @@ namespace BookHavenLibrary.Controllers
 
             await _context.SaveChangesAsync();
 
-
             var user = await _context.Users.FindAsync(order.UserId);
             if (user != null)
             {
                 await SendCompletionEmailAsync(order, user.Email);
             }
 
-            return Ok(new { message = $"Order #{order.Id} has been marked as completed." });
+            return Ok(new { success = true, message = $"Order #{order.Id} has been marked as completed." });
         }
+
 
         private async Task SendCompletionEmailAsync(Order order, string toEmail)
         {

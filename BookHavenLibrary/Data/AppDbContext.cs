@@ -49,9 +49,15 @@ namespace BookHavenLibrary.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<CartItem>()
-                .HasOne<ShoppingCart>()
-                .WithMany(c => c.CartItems)
+                .HasOne(ci => ci.Book)
+                .WithMany()
+                .HasForeignKey(ci => ci.BookId);
+
+            modelBuilder.Entity<CartItem>()
+                .HasOne(ci => ci.ShoppingCart)
+                .WithMany(sc => sc.CartItems)
                 .HasForeignKey(ci => ci.ShoppingCartId);
+
 
             modelBuilder.Entity<BookCategory>()
                 .HasKey(bc => new { bc.BookId, bc.CategoryId });

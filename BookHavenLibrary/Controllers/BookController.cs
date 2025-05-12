@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace BookHavenLibrary.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class BookController : ControllerBase

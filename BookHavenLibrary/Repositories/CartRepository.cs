@@ -21,12 +21,14 @@ namespace BookHavenLibrary.Repositories
                 .FirstOrDefaultAsync(c => c.UserId == userId && !c.IsPaymentDone);
         }
 
-        public async Task<IEnumerable<CartItem>> GetCartItemsAsync(int cartId)
+        public async Task<List<CartItem>> GetCartItemsAsync(int cartId)
         {
             return await _context.CartItems
+                .Include(ci => ci.Book)
                 .Where(ci => ci.ShoppingCartId == cartId)
                 .ToListAsync();
         }
+
 
         public async Task<CartItem> GetCartItemByIdAsync(int id)
         {
@@ -35,44 +37,53 @@ namespace BookHavenLibrary.Repositories
 
         public async Task<bool> AddToCartAsync(int userId, int bookId, int quantity)
         {
-            var cart = await GetCartByUserIdAsync(userId);
-            if (cart == null)
+            try
             {
-                cart = new ShoppingCart
+                var cart = await _context.ShoppingCarts
+                    .FirstOrDefaultAsync(c => c.UserId == userId && !c.IsPaymentDone);
+
+                if (cart == null)
                 {
-                    UserId = userId,
-                    IsPaymentDone = false,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _context.ShoppingCarts.Add(cart);
-                await _context.SaveChangesAsync(); // Save to get generated cart.Id
-            }
+                    cart = new ShoppingCart
+                    {
+                        UserId = userId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        IsPaymentDone = false
+                    };
+                    _context.ShoppingCarts.Add(cart);
+                    await _context.SaveChangesAsync();
+                }
 
-            var existingItem = await _context.CartItems
-                .FirstOrDefaultAsync(ci => ci.ShoppingCartId == cart.Id && ci.BookId == bookId);
+                var existingItem = await _context.CartItems
+                    .FirstOrDefaultAsync(ci => ci.ShoppingCartId == cart.Id && ci.BookId == bookId);
 
-            if (existingItem != null)
-            {
-                existingItem.Quantity += quantity;
-            }
-            else
-            {
-                var cartItem = new CartItem
+                if (existingItem != null)
                 {
-                    ShoppingCartId = cart.Id,
-                    BookId = bookId,
-                    Quantity = quantity,
-                    AddedAt = DateTime.UtcNow
-                };
-                _context.CartItems.Add(cartItem);
+                    existingItem.Quantity += quantity;
+                    existingItem.AddedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    var cartItem = new CartItem
+                    {
+                        ShoppingCartId = cart.Id,
+                        BookId = bookId,
+                        Quantity = quantity,
+                        AddedAt = DateTime.UtcNow
+                    };
+                    _context.CartItems.Add(cartItem);
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
             }
-
-            cart.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            return true;
+            catch
+            {
+                return false;
+            }
         }
+
 
         public async Task UpdateCartItemAsync(CartItem item)
         {
