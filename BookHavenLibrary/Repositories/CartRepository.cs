@@ -123,5 +123,15 @@ namespace BookHavenLibrary.Repositories
                 .Include(c => c.CartItems)
                 .ToListAsync();
         }
+
+        public async Task<List<ShoppingCart>> GetPaidCartsWithItemsAsync()
+        {
+            return await _context.ShoppingCarts
+                .Where(c => c.IsPaymentDone)
+                .Include(c => c.CartItems)
+                    .ThenInclude(ci => ci.Book)
+                .ToListAsync();
+        }
+
     }
 }

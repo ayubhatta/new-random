@@ -12,5 +12,7 @@ namespace BookHavenLibrary.Repositories
         Task<List<ShoppingCart>> GetPaidCartsByUserAsync(int userId);
         Task<bool> AddToCartAsync(int userId, int bookId, int quantity);
         Task<List<CartItem>> GetCartItemsAsync(int cartId);
+        Task<List<ShoppingCart>> GetPaidCartsWithItemsAsync();
+
     }
 }

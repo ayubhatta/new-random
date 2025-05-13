@@ -7,5 +7,8 @@ namespace BookHavenLibrary.Repositories
         Task AddAsync(Purchase purchase);
         Task<bool> HasUserPurchasedBook(int userId, int bookId);
         Task<List<Purchase>> GetPurchasesByUserAsync(int userId);
+
+        Task<List<Purchase>> GetAllPurchasesAsync();
+
     }
 }

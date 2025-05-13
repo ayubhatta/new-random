@@ -30,5 +30,13 @@ namespace BookHavenLibrary.Repositories
                 .Where(p => p.UserId == userId)
                 .ToListAsync();
         }
+
+        public async Task<List<Purchase>> GetAllPurchasesAsync()
+        {
+            return await _context.Purchases
+                .Include(p => p.Book)
+                .ToListAsync();
+        }
+
     }
 }

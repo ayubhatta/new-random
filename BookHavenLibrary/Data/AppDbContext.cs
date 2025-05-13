@@ -72,6 +72,11 @@ namespace BookHavenLibrary.Data
                 .WithMany(c => c.BookCategories)
                 .HasForeignKey(bc => bc.CategoryId);
 
+            modelBuilder.Entity<Purchase>()
+                .HasOne(p => p.Book)
+                .WithMany() // or .WithMany(b => b.Purchases) if Book has a collection
+                .HasForeignKey(p => p.BookId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

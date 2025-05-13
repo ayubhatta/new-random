@@ -57,7 +57,6 @@ namespace BookHavenLibrary.Controllers
                 return new OrderItem
                 {
                     BookId = book.Id,
-
                     Quantity = ci.Quantity,
                     PriceAtOrder = book.Price,
                     Subtotal = book.Price * ci.Quantity
@@ -92,6 +91,25 @@ namespace BookHavenLibrary.Controllers
                     if (inventory.QuantityInStock < 0) inventory.QuantityInStock = 0; // Optional safeguard
                 }
             }
+
+            // Store purchase history
+            foreach (var ci in cartItems)
+            {
+                var alreadyPurchased = await _context.Purchases
+                    .AnyAsync(p => p.UserId == userId && p.BookId == ci.BookId);
+
+                if (!alreadyPurchased)
+                {
+                    var purchase = new Purchase
+                    {
+                        UserId = userId,
+                        BookId = ci.BookId,
+                        PurchaseDate = DateTime.UtcNow
+                    };
+                    _context.Purchases.Add(purchase);
+                }
+            }
+
 
             // Clear the cart after placing the order
             _context.CartItems.RemoveRange(cartItems);

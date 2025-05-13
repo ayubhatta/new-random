@@ -8,7 +8,7 @@
     {
         [Route("api/[controller]")]
         [ApiController]
-        [Authorize(Roles = "member")]
+        //[Authorize(Roles = "member")]
         public class CartController : ControllerBase
         {
             private readonly ICartRepository _cartRepo;
@@ -80,35 +80,68 @@
 
 
         [HttpPut("update/{itemId}")]
-            public async Task<IActionResult> UpdateCartItem(int itemId, int quantity)
-            {
-                if (quantity < 1) return BadRequest(new {success = false,  message = "Quantity must be at least 1." });
+        public async Task<IActionResult> UpdateCartItem(int itemId, int quantity)
+        {
+            if (quantity < 1) return BadRequest(new {success = false,  message = "Quantity must be at least 1." });
 
-                var item = await _cartRepo.GetCartItemByIdAsync(itemId);
-                if (item == null) return NotFound(new { success = false, message = "Item not found." });
+            var item = await _cartRepo.GetCartItemByIdAsync(itemId);
+            if (item == null) return NotFound(new { success = false, message = "Item not found." });
+            
+            item.Quantity = quantity;
+            item.AddedAt = DateTime.UtcNow;
 
-                item.Quantity = quantity;
-                item.AddedAt = DateTime.UtcNow;
-
-                await _cartRepo.UpdateCartItemAsync(item);
-                return Ok(new { success = true, message = "Cart item updated." });
-            }
-
-            [HttpDelete("remove/{itemId}")]
-            public async Task<IActionResult> RemoveCartItem(int itemId)
-            {
-                await _cartRepo.RemoveCartItemAsync(itemId);
-                return Ok(new { success = true, message = "Cart item removed." });
-            }
-
-            [HttpDelete("cancel")]
-            public async Task<IActionResult> CancelCart()
-            {
-                var userId = GetUserId();
-                await _cartRepo.CancelCartAsync(userId);
-                return Ok(new { success = true, message = "Cart canceled." });
-            }
-
-
+            await _cartRepo.UpdateCartItemAsync(item);
+            return Ok(new { success = true, message = "Cart item updated." });
         }
+
+        [HttpDelete("remove/{itemId}")]
+        public async Task<IActionResult> RemoveCartItem(int itemId)
+        {
+            await _cartRepo.RemoveCartItemAsync(itemId);
+            return Ok(new { success = true, message = "Cart item removed." });
+        }
+
+        [HttpDelete("cancel")]
+        public async Task<IActionResult> CancelCart()
+        {
+            var userId = GetUserId();
+            await _cartRepo.CancelCartAsync(userId);
+            return Ok(new { success = true, message = "Cart canceled." });
+        }
+
+        [HttpGet("paid")]
+        //[Authorize(Roles = "admin")] // Optional
+        public async Task<IActionResult> GetPaidPurchases()
+        {
+            var purchases = await _purchaseRepo.GetAllPurchasesAsync();
+
+            var grouped = purchases
+                .GroupBy(p => p.UserId)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    Purchases = g.Select(p => new
+                    {
+                        p.Id,
+                        p.BookId,
+                        p.PurchaseDate,
+                        book = new
+                        {
+                            p.Book.Title,
+                            p.Book.AuthorName,
+                            p.Book.Price,
+                            p.Book.CoverImageUrl
+                        }
+                    }).ToList()
+                });
+
+            return Ok(new
+            {
+                success = true,
+                message = "Purchase history fetched successfully.",
+                users = grouped
+            });
+        }
+
     }
+}
