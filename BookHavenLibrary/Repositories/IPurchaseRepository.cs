@@ -9,6 +9,8 @@ namespace BookHavenLibrary.Repositories
         Task<List<Purchase>> GetPurchasesByUserAsync(int userId);
 
         Task<List<Purchase>> GetAllPurchasesAsync();
+        Task<List<Purchase>> GetPurchasesByUserIdAsync(int userId);
+
 
     }
 }

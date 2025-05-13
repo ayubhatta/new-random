@@ -68,6 +68,12 @@
         [HttpPost("add")]
         public async Task<IActionResult> AddToCart(int bookId, int quantity = 1)
         {
+            // Quantity validation
+            if (quantity < 1)
+            {
+                return BadRequest(new { success = false, message = "Quantity must be at least 1." });
+            }
+
             var userId = GetUserId();
             var success = await _cartRepo.AddToCartAsync(userId, bookId, quantity);
 
@@ -76,6 +82,7 @@
 
             return Ok(new { success = true, message = "Book added to cart." });
         }
+
 
 
 
@@ -108,40 +115,44 @@
             await _cartRepo.CancelCartAsync(userId);
             return Ok(new { success = true, message = "Cart canceled." });
         }
-
-        [HttpGet("paid")]
-        //[Authorize(Roles = "admin")] // Optional
-        public async Task<IActionResult> GetPaidPurchases()
+        [HttpGet("count")]
+        [Authorize]
+        public async Task<IActionResult> GetCartItemCount()
         {
-            var purchases = await _purchaseRepo.GetAllPurchasesAsync();
-
-            var grouped = purchases
-                .GroupBy(p => p.UserId)
-                .Select(g => new
-                {
-                    UserId = g.Key,
-                    Purchases = g.Select(p => new
-                    {
-                        p.Id,
-                        p.BookId,
-                        p.PurchaseDate,
-                        book = new
-                        {
-                            p.Book.Title,
-                            p.Book.AuthorName,
-                            p.Book.Price,
-                            p.Book.CoverImageUrl
-                        }
-                    }).ToList()
-                });
-
-            return Ok(new
-            {
-                success = true,
-                message = "Purchase history fetched successfully.",
-                users = grouped
-            });
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var count = await _cartRepo.GetCartItemCountAsync(userId);
+            return Ok(new { data = count });
         }
+
+
+       [HttpGet("my-purchases")]
+public async Task<IActionResult> GetPaidPurchases()
+{
+    var userId = GetUserId();
+    var purchases = await _purchaseRepo.GetPurchasesByUserIdAsync(userId); // ✅ new method for filtering
+
+    var result = purchases.Select(p => new
+    {
+        p.Id,
+        p.BookId,
+        p.PurchaseDate,
+        book = new
+        {
+            p.Book.Title,
+            p.Book.AuthorName,
+            p.Book.Price,
+            p.Book.CoverImageUrl
+        }
+    });
+
+    return Ok(new
+    {
+        success = true,
+        message = "Your purchases fetched successfully.",
+        data = result // ✅ changed from `users` to `data`
+    });
+}
+
 
     }
 }

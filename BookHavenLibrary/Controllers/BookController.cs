@@ -10,6 +10,8 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using BookHavenLibrary.Data;
 
 
 namespace BookHavenLibrary.Controllers
@@ -23,14 +25,21 @@ namespace BookHavenLibrary.Controllers
         private readonly IInventoryRepository _inventoryRepository;
         private const int MaxImageWidth = 1024;  // Max width for resizing imagesn 
         private readonly ILogger<BookController> _logger;
+        private readonly AppDbContext _context;
 
 
-        public BookController(IBookRepository bookRepository, IInventoryRepository inventoryRepository ,ILogger<BookController> logger)
+
+        public BookController(IBookRepository bookRepository,
+                       IInventoryRepository inventoryRepository,
+                       ILogger<BookController> logger,
+                       AppDbContext context) // Add this
         {
             _bookRepository = bookRepository;
             _inventoryRepository = inventoryRepository;
             _logger = logger;
+            _context = context; // Assign here
         }
+
 
 
         public class ImgBBResponse
@@ -466,6 +475,126 @@ namespace BookHavenLibrary.Controllers
             }
         }
 
+
+        [HttpGet("filtered")]
+        public async Task<IActionResult> GetFilteredBooks(
+    [FromQuery] string? search = "",
+    [FromQuery] string? genres = "",
+    [FromQuery] string? languages = "",
+    [FromQuery] bool inStock = false,
+    [FromQuery] bool outOfStock = false,
+    [FromQuery] decimal minPrice = 0,
+    [FromQuery] decimal maxPrice = 10000,
+    [FromQuery] string sort = "default",
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                var allBooks = await _bookRepository.GetAllAsync();
+
+                var query = allBooks.AsQueryable();
+
+                // Filtering
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    query = query.Where(b =>
+                        b.Title.Contains(search) ||
+                        b.AuthorName.Contains(search) ||
+                        b.ISBN.Contains(search) || 
+                        b.Language.Contains(search));
+                }
+
+                if (!string.IsNullOrWhiteSpace(genres))
+                {
+                    var genreList = genres.Split(',').Select(g => g.Trim()).ToList();
+                    query = query.Where(b => b.BookCategories.Any(c => genreList.Contains(c.Category.Name)));
+                }
+
+                if (!string.IsNullOrWhiteSpace(languages))
+                {
+                    var langList = languages.Split(',').Select(l => l.Trim()).ToList();
+                    query = query.Where(b => langList.Contains(b.Language));
+                }
+
+                if (inStock && !outOfStock)
+                {
+                    query = query.Where(b => b.Inventory.IsAvailable);
+                }
+                else if (!inStock && outOfStock)
+                {
+                    query = query.Where(b => !b.Inventory.IsAvailable);
+                }
+
+                query = query.Where(b => b.Price >= minPrice && b.Price <= maxPrice);
+
+                // Sorting
+                query = sort switch
+                {
+                    "priceAsc" => query.OrderBy(b => b.Price),
+                    "priceDesc" => query.OrderByDescending(b => b.Price),
+                    "titleAsc" => query.OrderBy(b => b.Title),
+                    "titleDesc" => query.OrderByDescending(b => b.Title),
+                    "newest" => query.OrderByDescending(b => b.PublicationDate),
+                    "oldest" => query.OrderBy(b => b.PublicationDate),
+                    _ => query.OrderBy(b => b.Title)
+                };
+
+                // Pagination
+                var total = query.Count();
+                var books = query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                // Build response
+                var result = books.Select(book => new
+                {
+                    book.Id,
+                    book.Title,
+                    book.Description,
+                    book.AuthorName,
+                    book.ISBN,
+                    book.Price,
+                    book.Format,
+                    book.Language,
+                    book.PublicationDate,
+                    book.CoverImageUrl,
+                    book.IsBestseller,
+                    book.IsAwardWinner,
+                    book.IsNewRelease,
+                    book.NewArrival,
+                    book.CommingSoon,
+                    Inventory = new
+                    {
+                        book.Inventory.QuantityInStock,
+                        book.Inventory.ReorderThreshold,
+                        book.Inventory.IsAvailable
+                    }
+                });
+
+                return Ok(new
+                {
+                    recordsTotal = total,
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetFilteredBooks");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+        [HttpGet("languages")]
+        public async Task<IActionResult> GetLanguages()
+        {
+            var languages = await _context.Books
+                .Select(b => b.Language)
+                .Distinct()
+                .ToListAsync();
+
+            return Ok(new { data = languages });
+        }
 
 
 

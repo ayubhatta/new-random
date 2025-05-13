@@ -18,6 +18,13 @@ namespace BookHavenLibrary.Repositories
             _context.Purchases.Add(purchase);
             await _context.SaveChangesAsync();
         }
+        public async Task<List<Purchase>> GetPurchasesByUserIdAsync(int userId)
+        {
+            return await _context.Purchases
+                .Where(p => p.UserId == userId)
+                .Include(p => p.Book)
+                .ToListAsync();
+        }
 
         public async Task<bool> HasUserPurchasedBook(int userId, int bookId)
         {

@@ -18,6 +18,11 @@ namespace BookHavenLibrary.Repositories
         {
             return await _context.Bookmarks.ToListAsync();
         }
+        public async Task<int> GetBookmarkCountAsync(int userId)
+        {
+            return await _context.Bookmarks.CountAsync(b => b.UserId == userId);
+        }
+
 
         public async Task<Bookmark?> GetByIdAsync(int id)
         {

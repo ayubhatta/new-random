@@ -14,6 +14,15 @@ namespace BookHavenLibrary.Repositories
             _context = context;
             _purchaseRepo = purchaseRepo;
         }
+        public async Task<int> GetCartItemCountAsync(int userId)
+        {
+            var cart = await _context.ShoppingCarts
+                .Include(c => c.CartItems)
+                .FirstOrDefaultAsync(c => c.UserId == userId && !c.IsPaymentDone);
+
+            return cart?.CartItems.Sum(ci => ci.Quantity) ?? 0;
+        }
+
 
         public async Task<ShoppingCart> GetCartByUserIdAsync(int userId)
         {

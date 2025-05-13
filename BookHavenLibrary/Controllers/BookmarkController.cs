@@ -150,6 +150,14 @@ namespace BookHavenLibrary.Controllers
 
 
 
+        [HttpGet("count")]
+        [Authorize]
+        public async Task<IActionResult> GetBookmarkCount()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var count = await _bookmarkRepository.GetBookmarkCountAsync(userId);
+            return Ok(new { data = count });
+        }
 
         [Authorize(Roles = "member")]
         [HttpPost]
